@@ -51,15 +51,15 @@ _PHYSICAL_INDEX_MARKER_RE = re.compile(r"^<physical_index_(\d+)>$")
 
 def _parse_physical_index(raw):
     if raw is None:
+        return None
         marker_match = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
         if marker_match:
             return int(marker_match.group(1))
         try:
             return int(raw)
-        except (TypeError, ValueError)
+        except (TypeError, ValueError):
             return None
-
-
+       
 def _validate_physical_indices(toc: list, total_pages: int, start_index: int = 1) -> list:
     """Nullify any physical_index the LLM produced that falls outside the real page range."""
     max_idx = start_index + total_pages - 1
@@ -571,7 +571,12 @@ def add_page_number_to_toc(part, structure, model=None):
     Directly return the final JSON structure. Do not output anything else."""
 
     part_text = ''.join(part) if isinstance(part, list) else part
-    prompt = _SYSTEM_HARDENING + fill_prompt_seq + f"\n\nCurrent Partial Document:\n{_secure_doc_text(part_text)}\n\nGiven Structure\n{json.dumps(structure, indent=2)}\n"
+    prompt = (
+        _SYSTEM_HARDENING + fill_prompt_seq
+        + f"\n\nCurrent Partial Document:\n{_secure_doc_text(part_text)}"
+        + f"\n\nGiven Structure\n{_secure_doc_text(json.dumps(structure, indent=2))}\n"
+    )
+    
     current_json_raw = llm_completion(model=model, prompt=prompt)
     json_result = extract_json(current_json_raw)
     
