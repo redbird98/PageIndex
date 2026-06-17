@@ -847,7 +847,12 @@ async def single_toc_item_index_fixer(section_title, content, model=None):
     }
     Directly return the final JSON structure. Do not output anything else."""
 
-    prompt = toc_extractor_prompt + '\nSection Title:\n' + str(section_title) + '\nDocument pages:\n' + content
+    prompt = (
+        __SYSTEM_HARDENING + toc_ectractor_prompt
+        + '\nSection Title:\n' + _secure_doc_text(str(section_title))
+        + '\nDocument pages:\n' + _secure_doc_text(content)
+    )
+    
     response = await llm_acompletion(model=model, prompt=prompt)
     json_content = extract_json(response)    
     return convert_physical_index_to_int(json_content['physical_index'])
