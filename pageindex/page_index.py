@@ -52,13 +52,13 @@ _PHYSICAL_INDEX_MARKER_RE = re.compile(r"^<physical_index_(\d+)>$")
 def _parse_physical_index(raw):
     if raw is None:
         return None
-        marker_match = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
-        if marker_match:
-            return int(marker_match.group(1))
-        try:
-            return int(raw)
-        except (TypeError, ValueError):
-            return None
+    marker_match = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
+    if marker_match:
+        return int(marker_match.group(1))
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
        
 def _validate_physical_indices(toc: list, total_pages: int, start_index: int = 1) -> list:
     """Nullify any physical_index the LLM produced that falls outside the real page range."""
@@ -626,7 +626,12 @@ def generate_toc_continue(toc_content, part, model=None):
 
     Directly return the additional part of the final JSON structure. Do not output anything else."""
 
-    prompt = _SYSTEM_HARDENING + prompt + '\nGiven text\n:' + _secure_doc_text(part) + '\nPrevious tree structure\n:' + json.dumps(toc_content, indent=2)
+    prompt = (
+        _SYSTEM_HARDENING + prompt 
+        + '\nGiven text\n:' + _secure_doc_text(part)
+        + '\nPrevious tree structure\n:' + _secure_doc_text(json.dumps(toc_content, indent=2))
+    )
+    
     response, finish_reason = llm_completion(model=model, prompt=prompt, return_finish_reason=True)
     if finish_reason == 'finished':
         return extract_json(response)
@@ -848,7 +853,7 @@ async def single_toc_item_index_fixer(section_title, content, model=None):
     Directly return the final JSON structure. Do not output anything else."""
 
     prompt = (
-        __SYSTEM_HARDENING + toc_ectractor_prompt
+        _SYSTEM_HARDENING + toc_ectractor_prompt
         + '\nSection Title:\n' + _secure_doc_text(str(section_title))
         + '\nDocument pages:\n' + _secure_doc_text(content)
     )
