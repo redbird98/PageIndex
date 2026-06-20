@@ -853,7 +853,7 @@ async def single_toc_item_index_fixer(section_title, content, model=None):
     Directly return the final JSON structure. Do not output anything else."""
 
     prompt = (
-        _SYSTEM_HARDENING + toc_ectractor_prompt
+        _SYSTEM_HARDENING + toc_extractor_prompt
         + '\nSection Title:\n' + _secure_doc_text(str(section_title))
         + '\nDocument pages:\n' + _secure_doc_text(content)
     )
