@@ -318,6 +318,25 @@ def toc_extractor(page_list, toc_page_list, model):
 def _extract_chunk_marker_set(content: str) -> set:
     return {int(m) for m in re.findall(r"<physical_index_(\d+)>", content)}
 
+def _validate_chunk_physical_indices(toc: list, content: str) -> list:
+    """
+    Nullify any physical_index that is not present in the supplied chunk.
+    This prevents the model from referencing markers that exist elsewhere
+    in the document but not in the current prompt.
+    """
+    valid_indices = _extract_chunk_marker_set(content)
+
+    for entry in toc:
+        raw = entry.get("physical_index")
+        if raw is None:
+            continue
+
+     m = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
+     if not m or int(m.group(1)) not in valid_indices:
+         entry["physical_index"] = None
+
+    return toc
+
 def toc_index_extractor(toc, content, model=None):
     print('start toc_index_extractor')
     valid_indices = _extract_chunk_marker_set(content)
@@ -684,10 +703,35 @@ def process_no_toc(page_list, start_index=1, model=None, logger=None):
     logger.info(f'len(group_texts): {len(group_texts)}')
 
     toc_with_page_number = generate_toc_init(group_texts[0], model)
-    toc_with_page_number = _validate_physical_indices(toc_with_page_number, len(page_list), start_index)
+    toc_with_page_number = _validate_chunk_physical_indices(
+        toc_with_page_number,
+        group_texts[0]
+    )
+
+    toc_with_page_number = _validate_physical_indices(
+        toc_with_page_number,
+        len(page_list),
+        start_index
+    )
+
     for group_text in group_texts[1:]:
-        toc_with_page_number_additional = generate_toc_continue(toc_with_page_number, group_text, model)
-        toc_with_page_number_additional = _validate_physical_indices(toc_with_page_number_additional, len(page_list), start_index)
+        toc_with_page_number_additional = generate_toc_continue(
+            toc_with_page_number,
+            group_text,
+            model
+        )
+        
+        toc_with_page_number_additional = _validate_physical_indices(
+            toc_with_page_number_additional,
+            group_text
+        )
+        
+        toc_with_page_number_additional = _validate_physical_indices(
+            toc_with_page_number_additional,
+            len(page_list),
+            start_index
+        )
+            
         toc_with_page_number.extend(toc_with_page_number_additional)
     logger.info(f'generate_toc: {toc_with_page_number}')
 
@@ -712,6 +756,7 @@ def process_toc_no_page_numbers(toc_content, toc_page_list, page_list,  start_in
     toc_with_page_number=copy.deepcopy(toc_content)
     for group_text in group_texts:
         toc_with_page_number = add_page_number_to_toc(group_text, toc_with_page_number, model)
+        toc_with_page_number = _validate_chunk_physical_indices(toc_with_page_number, group_text)
     logger.info(f'add_page_number_to_toc: {toc_with_page_number}')
 
     toc_with_page_number = convert_physical_index_to_int(toc_with_page_number)
