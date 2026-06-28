@@ -331,9 +331,9 @@ def _validate_chunk_physical_indices(toc: list, content: str) -> list:
         if raw is None:
             continue
 
-     m = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
-     if not m or int(m.group(1)) not in valid_indices:
-         entry["physical_index"] = None
+        m = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
+        if not m or int(m.group(1)) not in valid_indices:
+           entry["physical_index"] = None
 
     return toc
 
@@ -726,7 +726,7 @@ def process_no_toc(page_list, start_index=1, model=None, logger=None):
             group_text
         )
         
-        toc_with_page_number_additional = _validate_physical_indices(
+        toc_with_page_number_additional = _validate_chunk_physical_indices(
             toc_with_page_number_additional,
             len(page_list),
             start_index
