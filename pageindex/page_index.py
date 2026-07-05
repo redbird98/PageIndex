@@ -755,6 +755,10 @@ def process_toc_no_page_numbers(toc_content, toc_page_list, page_list,  start_in
 
     toc_with_page_number=copy.deepcopy(toc_content)
     for group_text in group_texts:
+        prior_values = {
+            i: e.get("physical_index")
+            for i, e in enumerate(toc_with_page_number)
+        }
         had_index_before = {
             i for i, e in enumerate(toc_with_page_number)
             if e.get("physical_index") is not None
@@ -763,8 +767,9 @@ def process_toc_no_page_numbers(toc_content, toc_page_list, page_list,  start_in
         valid_indices = _extract_chunk_marker_set(group_text)
         for i, entry in enumerate(toc_with_page_number):
             if i in had_index_before:
-                continue
-            raw = entry.get("physical_index")
+                entry["physical_index"] = prior_values[i]
+            else:
+                raw = entry.get("physical_index")
             if raw is None:
                 continue
             m = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
