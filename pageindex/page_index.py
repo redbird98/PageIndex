@@ -90,7 +90,7 @@ async def check_title_appearance(item, page_list, start_index=1, model=None):
 
     Note: do fuzzy matching, ignore any space inconsistency in the page_text.
 
-    The given section title is {_secure_doc_text(str(title))}.
+    The given section title is {title}.
     The given page_text is:
     {_secure_doc_text(page_text)}
     
@@ -120,7 +120,7 @@ async def check_title_appearance_in_start(title, page_text, model=None, logger=N
 
     Note: do fuzzy matching, ignore any space inconsistency in the page_text.
 
-    The given section title is {_secure_doc_text(str(title))}.
+    The given section title is {title}.
     The given page_text is:
     {_secure_doc_text(page_text)}
     
@@ -721,12 +721,12 @@ def process_no_toc(page_list, start_index=1, model=None, logger=None):
             model
         )
         
-        toc_with_page_number_additional = _validate_chunk_physical_indices(
+        toc_with_page_number_additional = _validate_physical_indices(
             toc_with_page_number_additional,
             group_text
         )
         
-        toc_with_page_number_additional = _validate_physical_indices(
+        toc_with_page_number_additional = _validate_chunk_physical_indices(
             toc_with_page_number_additional,
             len(page_list),
             start_index
@@ -753,23 +753,19 @@ def process_toc_no_page_numbers(toc_content, toc_page_list, page_list,  start_in
     group_texts = page_list_to_group_text(page_contents, token_lengths)
     logger.info(f'len(group_texts): {len(group_texts)}')
 
-    toc_with_page_number=copy.deepcopy(toc_content)
+    toc_with_page_number = copy.deepcopy(toc_content)
     for group_text in group_texts:
         prior_values = {
             i: e.get("physical_index")
             for i, e in enumerate(toc_with_page_number)
         }
-        had_index_before = {
-            i for i, e in enumerate(toc_with_page_number)
-            if e.get("physical_index") is not None
-        }
         toc_with_page_number = add_page_number_to_toc(group_text, toc_with_page_number, model)
         valid_indices = _extract_chunk_marker_set(group_text)
         for i, entry in enumerate(toc_with_page_number):
-            if i in had_index_before:
+            if i in prior_values and prior_values[i] is not None:
                 entry["physical_index"] = prior_values[i]
-            else:
-                raw = entry.get("physical_index")
+                continue
+            raw = entry.get("physical_index")
             if raw is None:
                 continue
             m = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
