@@ -755,22 +755,37 @@ def process_toc_no_page_numbers(toc_content, toc_page_list, page_list,  start_in
 
     toc_with_page_number = copy.deepcopy(toc_content)
     for group_text in group_texts:
-        prior_values = {
-            i: e.get("physical_index")
-            for i, e in enumerate(toc_with_page_number)
+        current_entries = {
+            entry["structure"]: entry
+            for entry in toc_with_page_number
         }
-        toc_with_page_number = add_page_number_to_toc(group_text, toc_with_page_number, model)
+
+        llm_result = add_page_number_to_toc(group_text, toc_with_page_number, model)
         valid_indices = _extract_chunk_marker_set(group_text)
-        for i, entry in enumerate(toc_with_page_number):
-            if i in prior_values and prior_values[i] is not None:
-                entry["physical_index"] = prior_values[i]
+        
+        for update in llm_result:
+            key = update.get("structure")
+            
+            if key not in current_entries:
                 continue
-            raw = entry.get("physical_index")
+
+            current = current_entries[key]
+
+            if current.get("physical_index") is not None:
+                continue
+                
+            raw = update.get("physical_index")
             if raw is None:
                 continue
             m = _PHYSICAL_INDEX_MARKER_RE.match(str(raw).strip())
-            if not m or int(m.group(1)) not in valid_indices:
-                entry["physical_index"] = None
+            
+            if not m:
+                continue
+            if int(m.group(1)) not in valid_indices:
+                continue
+                
+                current["physical_index"] = raw
+    toc_with_page_number = list(current_entries.values())
     logger.info(f'add_page_number_to_toc: {toc_with_page_number}')
 
     toc_with_page_number = convert_physical_index_to_int(toc_with_page_number)
