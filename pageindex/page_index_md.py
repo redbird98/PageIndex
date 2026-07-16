@@ -62,7 +62,8 @@ def extract_nodes_from_markdown(markdown_content):
             bold_match = re.match(bold_heading_pattern, stripped_line)
             if bold_match:
                 title = bold_match.group(1).strip()
-                node_list.append({'node_title': title, 'line_num': line_num, 'level': 1})
+                if title:
+                    node_list.append({'node_title': title, 'line_num': line_num, 'level': 1})
 
     return node_list, lines
 
