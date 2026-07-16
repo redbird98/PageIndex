@@ -761,6 +761,12 @@ def process_toc_no_page_numbers(toc_content, toc_page_list, page_list,  start_in
             raise ValueError(
                 "LLM returned a different number of TOC entries than expected."
             )
+        if any(
+            (update.get("structure"), update.get("title"))
+            != (current.get("structure"), current.get("title"))
+            for update, current in zip(llm_result, toc_with_page_number)
+        ):
+            raise ValueError("LLM returned reordered or modified TOC entries.")
         valid_indices = _extract_chunk_marker_set(group_text)
         
         for idx, current in enumerate(toc_with_page_number):
